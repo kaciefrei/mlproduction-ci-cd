@@ -2,8 +2,9 @@ name: Feature to Dev CI/CD
 
 on:
   push:
-    branches:
-      - dev
+    branches: ["dev"]
+    
+      
 
 jobs:
   build-and-test:

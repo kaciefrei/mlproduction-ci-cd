@@ -3,9 +3,7 @@ name: Feature to Dev CI/CD
 on:
   push:
     branches: ["dev"]
-    
-      
-
+ 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -49,4 +47,4 @@ jobs:
         run: |
           git checkout main || git checkout -b main
           git merge dev
-          git push origin main
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main

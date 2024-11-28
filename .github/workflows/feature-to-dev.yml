@@ -2,8 +2,12 @@ name: Feature to Dev CI/CD
 
 on:
   push:
+<<<<<<< HEAD
     branches:
       - dev
+=======
+    branches: ["dev"]
+>>>>>>> 0af2d9fa913127616d38548efd73c558a6bbf44d
 
 jobs:
   build-and-test:
@@ -44,8 +48,21 @@ jobs:
           git config --global user.name "kaciefrei"
           git config --global user.email "kaci.bouaouli@efrei.net"
 
+<<<<<<< HEAD
       - name: Merge dev into main
         run: |
           git checkout main || git checkout -b main
           git merge dev
           git push origin main
+=======
+      - name: Checkout main branch
+        run: |
+          git fetch origin
+          git checkout main || git checkout -b main
+          git pull origin main
+
+      - name: Merge dev into main and push
+        run: |
+          git merge dev --allow-unrelated-histories
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
+>>>>>>> 0af2d9fa913127616d38548efd73c558a6bbf44d

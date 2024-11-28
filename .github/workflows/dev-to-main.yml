@@ -56,6 +56,11 @@ jobs:
           git merge origin/dev --allow-unrelated-histories
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
 
+      - name: Set up Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
       - name: Log in to Docker Hub
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -72,12 +77,12 @@ jobs:
 
       - name: Deploy on Docker (Start containers)
         run: |
-          docker-compose -f docker-compose.yml up -d
+          docker-compose -f docker-compose.yml up -d  # Run in detached mode
 
       - name: Wait for Docker containers to be ready
         run: |
-          sleep 30
+          sleep 30  # Wait a little to ensure Docker containers are running
 
       - name: Test application is running on localhost:3000
         run: |
-          curl --silent --fail localhost:3000 || exit 1
+          curl --silent --fail localhost:3000 || exit 1  # Check if the frontend is available on localhost:3000

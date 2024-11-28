@@ -1,16 +1,15 @@
-name: Dev to main Workflow
+name: Feature to Dev CI/CD
 
 on:
   push:
-    branches:
-      - main
+    branches: ["dev"]
 
 jobs:
-  build-test-deploy:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Node.js
@@ -18,21 +17,26 @@ jobs:
         with:
           node-version: 16
 
-      - name: Install Frontend Dependencies
-        working-directory: ./frontend
-        run: npm ci
+      - name: Install dependencies for backend
+        run: |
+          cd backend
+          npm install --unsafe-perm=true
+          chmod +x node_modules/.bin/jest
 
-      - name: Install Backend Dependencies
-        working-directory: ./backend
-        run: npm ci
+      - name: Install dependencies for frontend
+        run: |
+          cd frontend
+          npm install --unsafe-perm=true
 
-      - name: Run Frontend Tests
-        working-directory: ./frontend
-        run: npm test -- --ci
+      - name: Run backend tests
+        run: |
+          cd backend
+          npx jest
 
-      - name: Run Backend Tests
-        working-directory: ./backend
-        run: npm test -- --ci
+      - name: Run frontend tests
+        run: |
+          cd frontend
+          npm test
 
       - name: Set up Git credentials
         run: |
@@ -45,18 +49,7 @@ jobs:
           git checkout main || git checkout -b main
           git pull origin main
 
-      - name: Merge dev into main with conflict resolution
+      - name: Merge dev into main and push
         run: |
           git merge dev --allow-unrelated-histories
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
-
-      - name: Log in to Docker Hub
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
-
-      - name: Build and Push Docker Images
-        run: |
-          docker-compose -f docker-compose.yml build
-          docker-compose -f docker-compose.yml push

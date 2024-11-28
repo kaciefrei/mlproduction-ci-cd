@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+    # Trigger on merge commit from dev to main
     types: [merged]
 
 jobs:

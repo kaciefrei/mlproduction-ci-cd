@@ -1,15 +1,19 @@
-name: Feature to Dev CI/CD
+name: Dev to Main Merge CI/CD
 
 on:
-  push:
-    branches: ["dev"]
+  workflow_run:
+    workflows:
+      - Feature to Dev CI/CD
+    types:
+      - completed
 
 jobs:
-  build-and-test:
+  build-test-deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
       - name: Set up Node.js
@@ -17,39 +21,68 @@ jobs:
         with:
           node-version: 16
 
-      - name: Install dependencies for backend
-        run: |
-          cd backend
-          npm install --unsafe-perm=true
-          chmod +x node_modules/.bin/jest
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
 
-      - name: Install dependencies for frontend
-        run: |
-          cd frontend
-          npm install --unsafe-perm=true
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
 
-      - name: Run backend tests
-        run: |
-          cd backend
-          npx jest
+      - name: Run Frontend Tests
+        working-directory: ./frontend
+        run: npm test -- --ci
 
-      - name: Run frontend tests
-        run: |
-          cd frontend
-          npm test
+      - name: Run Backend Tests
+        working-directory: ./backend
+        run: npm test -- --ci
 
       - name: Set up Git credentials
         run: |
           git config --global user.name "kaciefrei"
           git config --global user.email "kaci.bouaouli@efrei.net"
 
-      - name: Checkout main branch
+      - name: Fetch remote branches
         run: |
           git fetch origin
-          git checkout main || git checkout -b main
+
+      - name: Checkout main branch
+        run: |
+          git checkout main
           git pull origin main
 
-      - name: Merge dev into main and push
+      - name: Merge dev into main
         run: |
-          git merge dev --allow-unrelated-histories
+          git merge origin/dev --allow-unrelated-histories
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
+
+      - name: Set up Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Log in to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+
+      - name: Build Docker Images
+        run: |
+          docker-compose -f docker-compose.yml build
+
+      - name: Push Docker Images to Hub
+        run: |
+          docker-compose -f docker-compose.yml push
+
+      - name: Deploy on Docker (Start containers)
+        run: |
+          docker-compose -f docker-compose.yml up -d  # Run in detached mode
+
+      - name: Wait for Docker containers to be ready
+        run: |
+          sleep 30  # Wait a little to ensure Docker containers are running
+
+      - name: Test application is running on localhost:3000
+        run: |
+          curl --silent --fail localhost:3000 || exit 1  # Check if the frontend is available on localhost:3000

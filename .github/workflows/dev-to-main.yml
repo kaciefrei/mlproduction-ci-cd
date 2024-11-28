@@ -39,15 +39,20 @@ jobs:
           git config --global user.name "kaciefrei"
           git config --global user.email "kaci.bouaouli@efrei.net"
 
-      - name: Checkout main branch
+      - name: Fetch remote branches
         run: |
           git fetch origin
+
+      - name: Checkout main branch
+        run: |
           git checkout main || git checkout -b main
           git pull origin main
 
       - name: Merge dev into main with conflict resolution
         run: |
-          git merge dev --allow-unrelated-histories
+          git merge origin/dev --allow-unrelated-histories || git merge --abort  # if merge fails
+          git add backend/app.js  # add the resolved file (if any conflict)
+          git commit -m "Resolved merge conflict"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
 
       - name: Log in to Docker Hub

@@ -1,9 +1,11 @@
-name: Dev to main Workflow
+name: Dev to Main Merge CI/CD
 
 on:
   push:
     branches:
       - main
+    # Trigger on merge commit from dev to main
+    types: [merged]
 
 jobs:
   build-test-deploy:
@@ -39,15 +41,18 @@ jobs:
           git config --global user.name "kaciefrei"
           git config --global user.email "kaci.bouaouli@efrei.net"
 
-      - name: Checkout main branch
+      - name: Fetch remote branches
         run: |
           git fetch origin
-          git checkout main || git checkout -b main
+
+      - name: Checkout main branch
+        run: |
+          git checkout main
           git pull origin main
 
-      - name: Merge dev into main with conflict resolution
+      - name: Merge dev into main
         run: |
-          git merge dev --allow-unrelated-histories
+          git merge origin/dev --allow-unrelated-histories
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
 
       - name: Log in to Docker Hub
@@ -56,7 +61,22 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 
-      - name: Build and Push Docker Images
+      - name: Build Docker Images
         run: |
           docker-compose -f docker-compose.yml build
+
+      - name: Push Docker Images to Hub
+        run: |
           docker-compose -f docker-compose.yml push
+
+      - name: Deploy on Docker (Start containers)
+        run: |
+          docker-compose -f docker-compose.yml up -d  # Run in detached mode
+
+      - name: Wait for Docker containers to be ready
+        run: |
+          sleep 30  # Wait a little to ensure Docker containers are running
+
+      - name: Test application is running on localhost:3000
+        run: |
+          curl --silent --fail localhost:3000 || exit 1  # Check if the frontend is available on localhost:3000

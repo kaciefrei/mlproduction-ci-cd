@@ -34,7 +34,6 @@ jobs:
         working-directory: ./backend
         run: npm test -- --ci
 
-<<<<<<< HEAD
       - name: Set up Git credentials
         run: |
           git config --global user.name "kaciefrei"
@@ -51,8 +50,6 @@ jobs:
           git merge dev --allow-unrelated-histories
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main
 
-=======
->>>>>>> 0af2d9fa913127616d38548efd73c558a6bbf44d
       - name: Log in to Docker Hub
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -62,8 +59,4 @@ jobs:
       - name: Build and Push Docker Images
         run: |
           docker-compose -f docker-compose.yml build
-<<<<<<< HEAD
           docker-compose -f docker-compose.yml push
-=======
-          docker-compose -f docker-compose.yml push
->>>>>>> 0af2d9fa913127616d38548efd73c558a6bbf44d
